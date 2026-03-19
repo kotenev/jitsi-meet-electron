@@ -10,6 +10,7 @@ const {
 } = require('@jitsi/electron-sdk');
 const {
     BrowserWindow,
+    dialog,
     Menu,
     app,
     ipcMain,
@@ -317,11 +318,13 @@ function createJitsiMeetWindow() {
             return;
         }
 
-        // On macOS, media permissions require explicit user approval via native dialogs.
-        // Electron's askForMediaAccess triggers the system permission prompt.
+        // Handle media (camera/microphone) permission requests.
+        // On macOS, use native system dialogs via askForMediaAccess.
+        // On Windows, show a custom Electron dialog for user approval.
         if (permission === 'media') {
             const mediaTypes = details.mediaTypes || [];
 
+            // macOS: Use native system permission dialogs
             if (process.platform === 'darwin') {
                 const permissionRequests = mediaTypes.map(mediaType => {
                     if (mediaType === 'audio') {
@@ -340,6 +343,41 @@ function createJitsiMeetWindow() {
                         console.warn('Media permission request failed:', error);
                         callback(true);
                     });
+
+                return;
+            }
+
+            // Windows: Show custom permission dialog
+            if (process.platform === 'win32') {
+                const mediaLabels = mediaTypes.map(type => {
+                    if (type === 'audio') {
+                        return 'microphone';
+                    }
+                    if (type === 'video') {
+                        return 'camera';
+                    }
+
+                    return type;
+                });
+
+                const message = mediaTypes.length > 1
+                    ? `Jitsi Meet wants to use your ${mediaLabels.join(' and ')}.`
+                    : `Jitsi Meet wants to use your ${mediaLabels[0]}.`;
+
+                dialog.showMessageBox(mainWindow, {
+                    type: 'question',
+                    buttons: [ 'Block', 'Allow' ],
+                    defaultId: 1,
+                    cancelId: 0,
+                    title: 'Media Access',
+                    message: 'Allow Media Access?',
+                    detail: message
+                }).then(result => {
+                    callback(result.response === 1);
+                }).catch(error => {
+                    console.warn('Media permission dialog failed:', error);
+                    callback(true);
+                });
 
                 return;
             }
