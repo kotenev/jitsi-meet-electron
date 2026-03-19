@@ -12,7 +12,8 @@ const {
     BrowserWindow,
     Menu,
     app,
-    ipcMain
+    ipcMain,
+    systemPreferences
 } = require('electron');
 const contextMenu = require('electron-context-menu');
 const debug = require('electron-debug');
@@ -314,6 +315,34 @@ function createJitsiMeetWindow() {
             callback(false);
 
             return;
+        }
+
+        // On macOS, media permissions require explicit user approval via native dialogs.
+        // Electron's askForMediaAccess triggers the system permission prompt.
+        if (permission === 'media') {
+            const mediaTypes = details.mediaTypes || [];
+
+            if (process.platform === 'darwin') {
+                const permissionRequests = mediaTypes.map(mediaType => {
+                    if (mediaType === 'audio') {
+                        return systemPreferences.askForMediaAccess('microphone');
+                    }
+                    if (mediaType === 'video') {
+                        return systemPreferences.askForMediaAccess('camera');
+                    }
+
+                    return Promise.resolve(true);
+                });
+
+                Promise.all(permissionRequests)
+                    .then(() => callback(true))
+                    .catch(error => {
+                        console.warn('Media permission request failed:', error);
+                        callback(true);
+                    });
+
+                return;
+            }
         }
 
         callback(true);
