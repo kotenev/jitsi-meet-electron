@@ -321,7 +321,8 @@ function createJitsiMeetWindow() {
         // Handle media (camera/microphone) permission requests.
         // On macOS, use native system dialogs via askForMediaAccess.
         // On Windows, show a custom Electron dialog for user approval.
-        if (permission === 'media') {
+        // For audio/video capture permissions, auto-grant to fix device access issues.
+        if (permission === 'media' || permission === 'audioCapture' || permission === 'videoCapture') {
             const mediaTypes = details.mediaTypes || [];
 
             // macOS: Use native system permission dialogs
@@ -347,38 +348,10 @@ function createJitsiMeetWindow() {
                 return;
             }
 
-            // Windows: Show custom permission dialog
+            // Windows: Auto-grant media permissions to fix device access issues
+            // https://github.com/electron/electron/issues/28513
             if (process.platform === 'win32') {
-                const mediaLabels = mediaTypes.map(type => {
-                    if (type === 'audio') {
-                        return 'microphone';
-                    }
-                    if (type === 'video') {
-                        return 'camera';
-                    }
-
-                    return type;
-                });
-
-                const message = mediaTypes.length > 1
-                    ? `Jitsi Meet wants to use your ${mediaLabels.join(' and ')}.`
-                    : `Jitsi Meet wants to use your ${mediaLabels[0]}.`;
-
-                dialog.showMessageBox(mainWindow, {
-                    type: 'question',
-                    buttons: [ 'Block', 'Allow' ],
-                    defaultId: 1,
-                    cancelId: 0,
-                    title: 'Media Access',
-                    message: 'Allow Media Access?',
-                    detail: message
-                }).then(result => {
-                    callback(result.response === 1);
-                }).catch(error => {
-                    console.warn('Media permission dialog failed:', error);
-                    callback(true);
-                });
-
+                callback(true);
                 return;
             }
         }
