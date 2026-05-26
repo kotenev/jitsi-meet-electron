@@ -38,6 +38,11 @@
 
 This repo has **no test suite**. Don't look for test commands or write tests.
 
+## Windows Media Devices Fix
+
+If camera/microphone don't work on Windows, the fix is already applied in `main.js`:
+- Media permissions are auto-granted on Windows to fix device access issues
+
 ## Release Process
 
 1. Create branch: `git checkout -b release-X-Y-Z`

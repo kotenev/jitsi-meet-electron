@@ -10,7 +10,6 @@ const {
 } = require('@jitsi/electron-sdk');
 const {
     BrowserWindow,
-    dialog,
     Menu,
     app,
     ipcMain,
@@ -352,6 +351,7 @@ function createJitsiMeetWindow() {
             // https://github.com/electron/electron/issues/28513
             if (process.platform === 'win32') {
                 callback(true);
+
                 return;
             }
         }
